@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KI-Reifegradanalyse</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#ffffff;
+  --bg-secondary:#f2f2f0;
+  --bg-tertiary:#e8e7e2;
+  --text-primary:#1a1a18;
+  --text-secondary:#5f5e5a;
+  --text-tertiary:#999894;
+  --border:rgba(0,0,0,0.10);
+  --border-md:rgba(0,0,0,0.18);
+  --radius-md:10px;
+  --radius-lg:14px;
+  --accent:#3266ad;
+  --accent-dark:#265190;
+  --font:'Segoe UI',system-ui,-apple-system,sans-serif;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1e1e1c;
+  --bg-secondary:#272725;
+  --bg-tertiary:#303030;
+  --text-primary:#e8e7e0;
+  --text-secondary:#a8a79f;
+  --text-tertiary:#6e6d68;
+  --border:rgba(255,255,255,0.09);
+  --border-md:rgba(255,255,255,0.18);
+  --accent:#5b8fd4;
+  --accent-dark:#3266ad;
+}}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:var(--font);
+  background:var(--bg-tertiary);
+  color:var(--text-primary);
+  min-height:100vh;
+  padding:2rem 1rem;
+}
+.app{
+  max-width:780px;
+  margin:0 auto;
+  background:var(--bg);
+  border-radius:var(--radius-lg);
+  border:0.5px solid var(--border);
+  padding:2rem 2.25rem;
+  box-shadow:0 2px 16px rgba(0,0,0,0.06);
+}
+.version{position:fixed;bottom:8px;right:12px;font-size:10px;color:var(--text-tertiary);opacity:0.5;pointer-events:none;}
+.screen{display:none}.screen.active{display:block}
+
+/* ── WELCOME ── */
+.welcome-box{text-align:center;padding:2.5rem 0 1.5rem;}
+.welcome-logo{
+  width:68px;height:68px;background:var(--accent);border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 1.75rem;font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.5px;
+}
+.welcome-divider{width:44px;height:3px;background:var(--accent);border-radius:2px;margin:0 auto 1.75rem;}
+.welcome-box h1{font-size:23px;font-weight:700;margin-bottom:0.75rem;line-height:1.35;}
+.welcome-box p{font-size:15px;color:var(--text-secondary);margin-bottom:2rem;line-height:1.65;max-width:520px;margin-left:auto;margin-right:auto;}
+.welcome-info{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:2rem;}
+.welcome-info-item{background:var(--bg-secondary);border-radius:var(--radius-md);padding:1.1rem 0.75rem;text-align:center;}
+.welcome-info-num{font-size:26px;font-weight:700;color:var(--accent);margin-bottom:5px;}
+.welcome-info-label{font-size:12px;color:var(--text-secondary);}
+
+/* ── PRIVACY ── */
+.privacy-section-title{font-size:21px;font-weight:700;margin-bottom:0.4rem;}
+.privacy-section-sub{font-size:14px;color:var(--text-secondary);margin-bottom:1.5rem;}
+.privacy-card{background:var(--bg-secondary);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem;}
+.privacy-card h3{font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.85rem;}
+.privacy-item{display:flex;gap:10px;margin-bottom:0.55rem;font-size:14px;color:var(--text-primary);line-height:1.5;}
+.privacy-item:last-child{margin-bottom:0;}
+.picon{color:#1d9e75;flex-shrink:0;margin-top:2px;}
+.privacy-responsible{font-size:13px;color:var(--text-secondary);line-height:1.75;}
+.privacy-responsible strong{color:var(--text-primary);font-weight:600;}
+.consent-row{
+  display:flex;align-items:flex-start;gap:12px;margin:1.25rem 0;
+  padding:1rem 1.25rem;border:0.5px solid var(--border-md);
+  border-radius:var(--radius-lg);cursor:pointer;transition:background 0.15s;
+}
+.consent-row:hover{background:var(--bg-secondary);}
+.consent-row input[type=checkbox]{width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:var(--accent);cursor:pointer;}
+.consent-text{font-size:14px;color:var(--text-primary);line-height:1.55;}
+
+/* ── QUIZ HEADER ── */
+.app-header{margin-bottom:1.5rem;}
+.app-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;}
+.header-logo{
+  width:32px;height:32px;background:var(--accent);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;color:#fff;letter-spacing:-1px;flex-shrink:0;
+}
+.app-header h1{font-size:20px;font-weight:700;margin-bottom:2px;}
+.app-header p{font-size:13px;color:var(--text-secondary);}
+.progress-bar{width:100%;height:4px;background:var(--border);border-radius:2px;margin-bottom:0.9rem;overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.4s ease;}
+.step-label{font-size:12px;color:var(--text-secondary);margin-bottom:1.5rem;}
+
+/* ── SECTION CARD ── */
+.section-card{
+  background:var(--bg);
+  border:0.5px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:1.5rem 1.75rem;
+  margin-bottom:1rem;
+}
+.section-title{
+  font-size:12px;font-weight:700;color:var(--accent);
+  text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.35rem;
+}
+.section-desc{
+  font-size:13px;color:var(--text-secondary);
+  margin-bottom:1.5rem;padding-bottom:1.25rem;
+  border-bottom:0.5px solid var(--border);line-height:1.55;
+}
+
+/* ── QUESTIONS ── */
+.question{margin-bottom:1.75rem;}
+.question:last-child{margin-bottom:0;}
+.question-text{
+  font-size:15px;font-weight:600;color:var(--text-primary);
+  margin-bottom:0.8rem;line-height:1.45;
+}
+.question-num{font-size:13px;color:var(--text-tertiary);font-weight:400;margin-right:4px;}
+
+/* ── RATING BUTTONS ── */
+.rating-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+.rating-btn{
+  width:46px;height:42px;
+  border:0.5px solid var(--border-md);
+  border-radius:var(--radius-md);
+  background:var(--bg-secondary);
+  color:var(--text-secondary);
+  font-size:15px;font-weight:600;
+  cursor:pointer;transition:all 0.14s;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font);
+}
+.rating-btn:hover{background:var(--bg-tertiary);color:var(--text-primary);border-color:var(--accent);}
+.rating-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(50,102,173,0.3);}
+.rating-btn.wn{font-size:12px;width:auto;padding:0 14px;font-weight:500;}
+.scale-hint{
+  font-size:11px;color:var(--text-tertiary);
+  margin-top:7px;display:flex;justify-content:space-between;
+  max-width:246px;
+}
+
+/* ── NAV ── */
+.nav-row{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:2rem;padding-top:1.25rem;border-top:0.5px solid var(--border);
+}
+.comp-badge{font-size:12px;color:var(--text-secondary);}
+.comp-badge strong{color:var(--accent);}
+
+/* ── BUTTONS ── */
+.btn{
+  padding:9px 22px;border-radius:var(--radius-md);
+  font-size:14px;font-weight:500;cursor:pointer;
+  border:0.5px solid var(--border-md);
+  background:var(--bg);color:var(--text-primary);
+  transition:all 0.15s;font-family:var(--font);
+}
+.btn:hover{background:var(--bg-secondary);}
+.btn:disabled{opacity:0.35;cursor:not-allowed;}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent-dark);}
+.btn-danger{background:#e24b4a;border-color:#e24b4a;color:#fff;}
+.btn-danger:hover{background:#c43a39;}
+
+/* ── THANK YOU ── */
+.thankyou-box{text-align:center;padding:3.5rem 1rem 2.5rem;}
+.big-check{
+  width:68px;height:68px;border-radius:50%;background:#1d9e75;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 1.5rem;font-size:30px;color:#fff;
+}
+.thankyou-box h2{font-size:23px;font-weight:700;margin-bottom:0.6rem;}
+.thankyou-box p{font-size:14px;color:var(--text-secondary);margin-bottom:1.75rem;line-height:1.6;}
+
+/* ── RESULT ── */
+.result-header{margin-bottom:2rem;}
+.result-header h2{font-size:22px;font-weight:700;margin-bottom:4px;}
+.result-header p{font-size:14px;color:var(--text-secondary);}
+.stage-card{
+  border:2px solid var(--accent);border-radius:var(--radius-lg);
+  padding:1.5rem;margin-bottom:1.5rem;
+  display:flex;align-items:center;gap:1.25rem;
+}
+.stage-circle{
+  width:58px;height:58px;border-radius:50%;background:var(--accent);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:25px;font-weight:700;flex-shrink:0;
+}
+.stage-info h3{font-size:18px;font-weight:700;margin-bottom:3px;}
+.stage-info p{font-size:14px;color:var(--text-secondary);}
+.stage-total{font-size:32px;font-weight:700;color:var(--accent);margin-left:auto;flex-shrink:0;}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem;}
+@media(max-width:520px){.metrics-grid{grid-template-columns:repeat(2,1fr);}}
+.metric-card{background:var(--bg-secondary);border-radius:var(--radius-md);padding:1rem;text-align:center;}
+.metric-label{font-size:12px;color:var(--text-secondary);margin-bottom:6px;}
+.metric-value{font-size:23px;font-weight:700;}
+.section-heading{font-size:15px;font-weight:700;margin-bottom:1rem;margin-top:1.5rem;}
+.dim-list{display:flex;flex-direction:column;gap:8px;margin-bottom:1.5rem;}
+.dim-row{border:0.5px solid var(--border);border-radius:var(--radius-md);padding:0.85rem 1rem;}
+.dim-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.dim-name{font-size:14px;font-weight:500;}
+.dim-badge{font-size:12px;font-weight:600;padding:2px 10px;border-radius:var(--radius-md);}
+.dim-bar-bg{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.dim-bar-fill{height:100%;border-radius:3px;transition:width 1s ease;}
+.oe-block{border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:0.75rem;}
+.oe-block-title{font-size:14px;font-weight:600;margin-bottom:0.6rem;}
+.tags{display:flex;flex-wrap:wrap;gap:5px;}
+.tag{background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:var(--radius-md);font-size:12px;color:var(--text-secondary);padding:3px 9px;}
+
+/* ── DASHBOARD ── */
+.chart-wrap{position:relative;width:100%;height:340px;margin-bottom:1.5rem;}
+.dash-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;}
+.dash-header h2{font-size:22px;font-weight:700;}
+.dash-header p{font-size:14px;color:var(--text-secondary);margin-top:3px;}
+.live-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#1d9e75;background:#e6f5ec;padding:4px 11px;border-radius:var(--radius-md);font-weight:600;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#1d9e75;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+.dash-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:1.5rem;}
+.loading-box{text-align:center;padding:3rem;color:var(--text-secondary);font-size:14px;}
+.compare-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+.compare-label{font-size:13px;color:var(--text-secondary);width:34px;text-align:right;flex-shrink:0;font-weight:600;}
+.compare-name{font-size:13px;width:210px;flex-shrink:0;}
+.compare-bar-bg{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+.compare-bar-fill{height:100%;border-radius:4px;transition:width 0.8s ease;}
+.compare-score{font-size:13px;font-weight:600;width:80px;text-align:right;flex-shrink:0;}
+.no-data{text-align:center;padding:2.5rem;color:var(--text-secondary);font-size:14px;background:var(--bg-secondary);border-radius:var(--radius-md);}
+.tab-nav{display:flex;gap:4px;margin-bottom:1.5rem;background:var(--bg-secondary);padding:4px;border-radius:var(--radius-md);}
+.tab-btn{flex:1;padding:8px;border:none;background:transparent;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text-secondary);font-family:var(--font);transition:all 0.15s;}
+.tab-btn.active{background:var(--bg);color:var(--text-primary);box-shadow:0 1px 4px rgba(0,0,0,0.1);}
+
+/* ── MODAL ── */
+.modal-backdrop{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;}
+.modal-box{background:var(--bg);border-radius:var(--radius-lg);padding:2rem;max-width:390px;width:90%;margin:1rem;border:0.5px solid var(--border);}
+.modal-box h3{font-size:18px;font-weight:700;margin-bottom:0.5rem;}
+.modal-box p{font-size:14px;color:var(--text-secondary);margin-bottom:1.25rem;line-height:1.5;}
+.modal-input{width:100%;padding:10px 14px;border:0.5px solid var(--border-md);border-radius:var(--radius-md);font-size:14px;font-family:var(--font);background:var(--bg);color:var(--text-primary);margin-bottom:0.75rem;outline:none;}
+.modal-error{color:#e24b4a;font-size:13px;margin-bottom:0.75rem;display:none;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+
+@media(max-width:480px){
+  .app{padding:1.25rem 1rem;}
+  .rating-btn{width:40px;height:40px;}
+}
+</style>
+</head>
+<body>
+<div class="version">v1.1</div>
+<div class="app">
+
+<!-- ══ WELCOME ══ -->
+<div id="screen-welcome" class="screen active">
+  <div class="welcome-box">
+    <div class="welcome-logo">AI-BP</div>
+    <div class="welcome-divider"></div>
+    <p style="font-size:13px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;">AI-Business Partners</p>
+    <h1>Willkommen zur KI-Reifegradanalyse</h1>
+    <p>Dieser Fragebogen hilft Ihnen, den aktuellen KI-Reifegrad Ihrer Organisation zu bestimmen und konkrete Handlungsfelder zu identifizieren.</p>
+    <div class="welcome-info">
+      <div class="welcome-info-item"><div class="welcome-info-num">7</div><div class="welcome-info-label">Dimensionen</div></div>
+      <div class="welcome-info-item"><div class="welcome-info-num">35</div><div class="welcome-info-label">Fragen</div></div>
+      <div class="welcome-info-item"><div class="welcome-info-num">~15</div><div class="welcome-info-label">Minuten</div></div>
+    </div>
+    <button class="btn btn-primary" onclick="showScreen('screen-privacy')" style="padding:11px 38px;font-size:15px;">Weiter &#x2192;</button>
+    <p style="font-size:11px;color:var(--text-tertiary);margin-top:1.75rem;">Version 1.1</p>
+  </div>
+</div>
+
+<!-- ══ DATENSCHUTZ ══ -->
+<div id="screen-privacy" class="screen">
+  <div style="margin-bottom:1.5rem;">
+    <div class="privacy-section-title">Datenschutzhinweis</div>
+    <div class="privacy-section-sub">Bitte lesen Sie die folgenden Informationen zur Datenverarbeitung.</div>
+  </div>
+  <div class="privacy-card">
+    <h3>Was wir erheben</h3>
+    <div class="privacy-item"><span class="picon">&#x2713;</span><span>Ihre Bewertungen zu 35 Fragen in 7 Dimensionen (Skala 1–5)</span></div>
+    <div class="privacy-item"><span class="picon">&#x2713;</span><span>Zeitstempel der Abgabe (für die Gruppenauswertung)</span></div>
+    <div class="privacy-item"><span class="picon">&#x2713;</span><span>Kein Name, keine E-Mail — die Teilnahme ist vollständig anonym</span></div>
+  </div>
+  <div class="privacy-card">
+    <h3>Wie wir Ihre Daten verwenden</h3>
+    <div class="privacy-item"><span class="picon">&#x2713;</span><span>Antworten werden anonym in Google Firebase (Firestore) gespeichert — Server in Frankfurt/EU</span></div>
+    <div class="privacy-item"><span class="picon">&#x2713;</span><span>Verwendung ausschließlich zur Berechnung des Gruppen-Mittelwerts in diesem Workshop</span></div>
+    <div class="privacy-item"><span class="picon">&#x2713;</span><span>Keine Weitergabe an Dritte</span></div>
+    <div class="privacy-item"><span class="picon">&#x2713;</span><span>Daten werden nach Abschluss des Workshops gelöscht</span></div>
+  </div>
+  <div class="privacy-card">
+    <h3>Verantwortlicher</h3>
+    <div class="privacy-responsible">
+      <strong>[FIRMENNAME]</strong><br>
+      [ADRESSE]<br>
+      E-Mail: <strong>[EMAIL]</strong><br><br>
+      Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung)
+    </div>
+  </div>
+  <label class="consent-row" for="consent-cb">
+    <input type="checkbox" id="consent-cb" onchange="checkConsent()">
+    <span class="consent-text">Ich habe die Datenschutzhinweise gelesen und bin damit einverstanden, dass meine anonymen Antworten für die Gruppenauswertung gespeichert werden.</span>
+  </label>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.5rem;">
+    <button class="btn" onclick="showScreen('screen-welcome')">&#x2190; Zurück</button>
+    <button class="btn btn-primary" id="btn-start" onclick="startQuiz()" disabled>Fragebogen starten &#x2192;</button>
+  </div>
+</div>
+
+<!-- ══ FRAGEBOGEN ══ -->
+<div id="screen-quiz" class="screen">
+  <div class="app-header">
+    <div class="app-header-top">
+      <div>
+        <h1>KI-Reifegradanalyse</h1>
+        <p>Bewerten Sie jede Aussage: 1 = trifft nicht zu &nbsp;|&nbsp; 5 = trifft voll zu</p>
+      </div>
+      <div class="header-logo" style="font-size:10px;letter-spacing:-0.5px;">AI-BP</div>
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress" style="width:14%"></div></div>
+  <div class="step-label" id="step-label">Dimension 1 von 7</div>
+  <div id="sections-container"></div>
+  <div class="nav-row">
+    <button class="btn" id="btn-prev" onclick="navigate(-1)" disabled>&#x2190; Zurück</button>
+    <div class="comp-badge" id="comp-badge"></div>
+    <button class="btn btn-primary" id="btn-next" onclick="navigate(1)">Weiter &#x2192;</button>
+  </div>
+</div>
+
+<!-- ══ DANKE ══ -->
+<div id="screen-thanks" class="screen">
+  <div class="thankyou-box">
+    <div class="big-check">&#x2713;</div>
+    <h2>Vielen Dank!</h2>
+    <p>Ihre Bewertung wurde anonym gespeichert.<br>Die Ergebnisse aller Teilnehmer werden im Dashboard zusammengeführt.</p>
+    <button class="btn btn-primary" onclick="showMyResults()">Mein Ergebnis ansehen &#x2192;</button>
+  </div>
+</div>
+
+<!-- ══ ERGEBNIS ══ -->
+<div id="screen-myresult" class="screen">
+  <div class="result-header">
+    <h2>Ihr persönliches Ergebnis</h2>
+    <p>Ihre Selbsteinschätzung — 7 Dimensionen, 35 Fragen</p>
+  </div>
+  <div id="myresult-content"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:1.75rem;">
+    <button class="btn" onclick="restart()">&#x21BA; Neu starten</button>
+    <button class="btn btn-primary" onclick="showScreen('screen-dashboard');loadDashboard()">Gruppen-Dashboard &#x2192;</button>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ══ -->
+<div id="screen-dashboard" class="screen">
+  <div class="dash-header">
+    <div><h2>Gruppen-Dashboard</h2><p>Mittelwert aller Teilnehmer-Bewertungen</p></div>
+    <span class="live-badge"><span class="live-dot"></span>Live</span>
+  </div>
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('tab-overview')">Übersicht</button>
+    <button class="tab-btn" onclick="switchTab('tab-radar')">Spinnendiagramm</button>
+    <button class="tab-btn" onclick="switchTab('tab-details')">Details &amp; Maßnahmen</button>
+  </div>
+  <div id="tab-overview">
+    <div id="dash-metrics" class="metrics-grid"></div>
+    <div id="dash-bars"></div>
+  </div>
+  <div id="tab-radar" style="display:none"><div class="chart-wrap"><canvas id="dashRadar"></canvas></div></div>
+  <div id="tab-details" style="display:none"><div id="dash-details"></div></div>
+  <div class="dash-controls">
+    <button class="btn" onclick="loadDashboard()">&#x21BB; Aktualisieren</button>
+    <button class="btn btn-danger" onclick="showResetModal()">Zurücksetzen (Admin)</button>
+    <button class="btn" onclick="showScreen('screen-welcome')">&#x2190; Startseite</button>
+  </div>
+</div>
+
+<!-- ══ PASSWORT-MODAL ══ -->
+<div id="reset-modal" class="modal-backdrop">
+  <div class="modal-box">
+    <h3>Admin: Daten zurücksetzen</h3>
+    <p>Alle gespeicherten Antworten werden unwiderruflich gelöscht. Bitte Administratorpasswort eingeben.</p>
+    <input type="password" id="reset-password" class="modal-input" placeholder="Passwort eingeben"
+      onkeydown="if(event.key==='Enter')checkResetPassword()">
+    <div id="reset-error" class="modal-error">Falsches Passwort. Bitte erneut versuchen.</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="hideResetModal()">Abbrechen</button>
+      <button class="btn btn-danger" onclick="checkResetPassword()">Bestätigen &amp; löschen</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- ══ FIREBASE ══ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ┌─────────────────────────────────────────────────────────┐
+// │  FIREBASE CONFIG — HIER ERSETZEN                        │
+// └─────────────────────────────────────────────────────────┘
+const firebaseConfig = {
+  apiKey:            "AIzaSyAuD8Hr-ob6phsyUXjz8ErXpMCxlnq6zLo",
+  authDomain:        "aibp-ki-reifegradanalyse.firebaseapp.com",
+  projectId:         "aibp-ki-reifegradanalyse",
+  storageBucket:     "aibp-ki-reifegradanalyse.firebasestorage.app",
+  messagingSenderId: "967147542948",
+  appId:             "1:967147542948:web:43b3f24d1ae5c2c52ac931"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+window._fbSave  = async (scores) => {
+  await addDoc(collection(db, "responses"), { scores, ts: Date.now() });
+};
+window._fbLoad  = async () => {
+  const snap = await getDocs(collection(db, "responses"));
+  return snap.docs.map(d => d.data());
+};
+window._fbReset = async () => {
+  const snap = await getDocs(collection(db, "responses"));
+  for (const d of snap.docs) await deleteDoc(doc(db, "responses", d.id));
+};
+</script>
+
+<!-- ══ APP LOGIC ══ -->
+<script>
+// ┌─────────────────────────────────────────────────────────┐
+// │  ADMIN-PASSWORT — HIER ÄNDERN                           │
+// └─────────────────────────────────────────────────────────┘
+const ADMIN_PW = 'Assessment2024#';
+
+// ┌─────────────────────────────────────────────────────────┐
+// │  7 DIMENSIONEN · je 5 FRAGEN                            │
+// └─────────────────────────────────────────────────────────┘
+const dimensions = [
+  {
+    id: 'A',
+    name: 'Geschäftsmodell & Strategie',
+    desc: 'Strategische Ausrichtung, KI-Vision und Bezug zum Geschäftsmodell.',
+    oe: ['KI-Strategie-Workshop durchführen','KI-Roadmap mit Geschäftszielen verknüpfen','Pilotprojekte mit Business Case definieren','KI-Innovationsprozess etablieren','Marktchancen durch KI systematisch analysieren'],
+    questions: [
+      'Es gibt eine klare KI-Strategie mit Bezug zum Geschäftsmodell.',
+      'KI-Initiativen werden priorisiert und gesteuert (kein Wildwuchs).',
+      'Die KI-Strategie ist den relevanten Führungskräften bekannt und kommuniziert.',
+      'Das Geschäftsmodell wird gezielt an die Möglichkeiten von KI angepasst.',
+      'Der Business Value von KI wird systematisch gemessen.'
+    ]
+  },
+  {
+    id: 'B',
+    name: 'Organisation & Prozesse',
+    desc: 'Organisatorische Verankerung, Zuständigkeiten und Prozessintegration von KI.',
+    oe: ['KI-Verantwortlichen / Chief AI Officer benennen','Abteilungsübergreifende KI-Arbeitsgruppe gründen','KI-Prozesse dokumentieren und standardisieren','Interdisziplinäre KI-Teams aufbauen','Organisationsstrukturen kontinuierlich anpassen'],
+    questions: [
+      'Es gibt eine klar benannte Verantwortung für KI im Unternehmen.',
+      'KI-Projekte folgen einem definierten Prozess (Pilotierung, Rollout, Betrieb).',
+      'KI ist in mindestens zwei verschiedenen Geschäftsbereichen operativ verankert.',
+      'Interdisziplinäre Teams arbeiten strukturiert an KI-Lösungen.',
+      'Die Organisation passt ihre Strukturen aktiv an neue KI-Möglichkeiten an.'
+    ]
+  },
+  {
+    id: 'C',
+    name: 'Menschen & Kultur',
+    desc: 'KI-Kompetenz, Weiterbildung und Innovationskultur im Unternehmen.',
+    oe: ['KI-Grundlagenschulung für alle Mitarbeitenden','KI-Champions in jeder Abteilung benennen','KI-Kompetenz in Karrierepfade integrieren','Innovationskultur und Experimentierräume fördern','Kontinuierliche Weiterbildungsprogramme etablieren'],
+    questions: [
+      'Die meisten Mitarbeitenden wissen, was KI ist und wo sie eingesetzt werden kann.',
+      'Es gibt strukturierte Schulungs- und Weiterbildungsangebote zu KI.',
+      'KI-Tools werden von Mitarbeitenden mehrerer Abteilungen regelmäßig genutzt.',
+      'KI-Kompetenzen sind Teil der Karrierepfade und Stellenbeschreibungen.',
+      'Mitarbeitende werden aktiv ermutigt, neue KI-Anwendungen vorzuschlagen.'
+    ]
+  },
+  {
+    id: 'D',
+    name: 'Technologie & Daten',
+    desc: 'Technologische Infrastruktur, Datenqualität und Datenstrategie.',
+    oe: ['IT-Infrastruktur auf KI-Anforderungen prüfen','Datenmanagement-Konzept entwickeln','KI-Plattform und Cloud-Infrastruktur aufbauen','Datenstrategie und Data Governance definieren','Echtzeit-Dateninfrastruktur für KI skalieren'],
+    questions: [
+      'Die IT-Infrastruktur ist grundsätzlich in der Lage, KI-Anwendungen zu betreiben.',
+      'Daten werden systematisch erfasst, strukturiert und für KI bereitgestellt.',
+      'Es gibt definierte Standards für Datenqualität und Datenzugang.',
+      'KI-Plattformen und -Tools sind unternehmensbreit integriert.',
+      'Die technologische Infrastruktur ermöglicht Echtzeit-KI-Entscheidungen.'
+    ]
+  },
+  {
+    id: 'E',
+    name: 'Prozesse & Kunden',
+    desc: 'KI-Einsatz in operativen Prozessen und der Kundeninteraktion.',
+    oe: ['Erste KI-Pilotprojekte in Kernprozessen starten','Prozessautomatisierungspotenziale mit KI identifizieren','KI-gestützte Kundenerlebnisse entwickeln','KI in alle operativen Prozesse integrieren','Echtzeit-Personalisierung für Kunden realisieren'],
+    questions: [
+      'KI wird in mindestens einem operativen Prozess eingesetzt.',
+      'KI-Pilotprojekte in Prozessen oder Kundeninteraktion laufen strukturiert.',
+      'KI-Einsatz erzeugt messbare Verbesserungen (Zeit, Kosten, Qualität).',
+      'Kunden erleben bereits KI-gestützte, personalisierte Interaktionen.',
+      'KI ermöglicht Echtzeit-Reaktionen auf Kundenbedürfnisse.'
+    ]
+  },
+  {
+    id: 'F',
+    name: 'Recht & Ethik',
+    desc: 'Rechtliche Anforderungen, ethische Grundsätze und KI-Governance.',
+    oe: ['Rechtliche KI-Anforderungen (EU AI Act) prüfen','Ethische KI-Richtlinien entwickeln','Compliance-Prozesse für KI etablieren','Regelmäßige KI-Audits durchführen','Branchenstandards für ethische KI mitgestalten'],
+    questions: [
+      'Rechtliche Rahmenbedingungen für KI (z. B. EU AI Act, DSGVO) sind bekannt.',
+      'Es gibt schriftliche ethische Leitlinien für den KI-Einsatz.',
+      'KI-Projekte werden auf rechtliche und ethische Anforderungen geprüft.',
+      'Regelmäßige Audits zu KI-Compliance werden durchgeführt.',
+      'Das Unternehmen gestaltet aktiv ethische Standards für KI mit.'
+    ]
+  },
+  {
+    id: 'G',
+    name: 'Datenschutz & Compliance',
+    desc: 'Datenschutzkonformität, Risikomanagement und Compliance beim KI-Einsatz.',
+    oe: ['Datenschutz-Folgenabschätzung für KI-Projekte','Datenschutzbeauftragten einbinden','Compliance-Richtlinien für KI-Projekte definieren','Externe Datenschutz-Audits etablieren','Proaktive Datenschutz-Standards entwickeln'],
+    questions: [
+      'Datenschutzanforderungen werden bei KI-Projekten von Anfang an berücksichtigt.',
+      'Es gibt definierte Prozesse zur Datenschutz-Folgenabschätzung bei KI.',
+      'Datenschutz- und Compliance-Richtlinien für KI sind dokumentiert und bekannt.',
+      'KI-Projekte werden regelmäßig auf Datenschutzkonformität überprüft.',
+      'Das Unternehmen entwickelt proaktiv Datenschutz-Standards über gesetzliche Anforderungen hinaus.'
+    ]
+  }
+];
+
+// ┌─────────────────────────────────────────────────────────┐
+// │  REIFEGRAD-STUFEN                                       │
+// └─────────────────────────────────────────────────────────┘
+const stages = [
+  {min:1.0,max:1.9,level:1,name:'Initial',    sub:'Vereinzelte Aktivitäten',  color:'#e24b4a'},
+  {min:2.0,max:2.6,level:2,name:'Bewusst',    sub:'Erste Strukturen',         color:'#ef9f27'},
+  {min:2.7,max:3.4,level:3,name:'Definiert',  sub:'Systematisches Vorgehen',  color:'#3266ad'},
+  {min:3.5,max:4.2,level:4,name:'Integriert', sub:'Skalierung läuft',         color:'#1d9e75'},
+  {min:4.3,max:5.0,level:5,name:'Optimiert',  sub:'KI-native Organisation',   color:'#534ab7'}
+];
+
+// ── STATE ──
+let currentStep = 0;
+let answers = {};   // key: "A_0", "A_1" … "G_4"  value: 1-5 | null
+let myScores = null;
+let radarChart = null;
+
+function getStage(val) {
+  if (!val || val < 1) return stages[0];
+  return stages.find(s => val >= s.min && val <= s.max) || stages[stages.length-1];
+}
+function scoreColor(v) { return v ? getStage(v).color : 'var(--text-tertiary)'; }
+
+// ── SCREENS ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function checkConsent() {
+  document.getElementById('btn-start').disabled = !document.getElementById('consent-cb').checked;
+}
+
+function startQuiz() {
+  currentStep = 0;
+  answers = {};
+  dimensions.forEach(d => {
+    d.questions.forEach((_, qi) => { answers[d.id+'_'+qi] = null; });
+  });
+  renderStep();
+  showScreen('screen-quiz');
+}
+
+// ── RENDER STEP ──
+function renderStep() {
+  const dim   = dimensions[currentStep];
+  const total = dimensions.length;
+  const pct   = ((currentStep + 1) / total * 100).toFixed(0);
+
+  document.getElementById('progress').style.width = pct + '%';
+  document.getElementById('step-label').textContent = `Dimension ${currentStep+1} von ${total}`;
+
+  // total answered questions
+  const totalQ    = dimensions.reduce((s, d) => s + d.questions.length, 0);
+  const answeredQ = Object.values(answers).filter(v => v !== null).length;
+  document.getElementById('comp-badge').innerHTML =
+    `<strong>${answeredQ}</strong> / ${totalQ} Fragen beantwortet`;
+
+  // build card
+  const container = document.getElementById('sections-container');
+  container.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'section-card';
+
+  let html = `
+    <div class="section-title">${dim.name}</div>
+    <div class="section-desc">${dim.desc}</div>
+  `;
+
+  dim.questions.forEach((q, qi) => {
+    const key = dim.id + '_' + qi;
+    const val = answers[key];
+    html += `
+      <div class="question">
+        <div class="question-text">
+          <span class="question-num">${qi+1}.</span>${q}
+        </div>
+        <div class="rating-row">
+          ${[1,2,3,4,5].map(v => `
+            <button class="rating-btn${val===v?' active':''}"
+              onclick="selectAnswer('${key}',${v})"
+              title="${v}">${v}</button>
+          `).join('')}
+          <button class="rating-btn wn${val===0?' active':''}"
+            onclick="selectAnswer('${key}',0)">Weiß nicht</button>
+        </div>
+        <div class="scale-hint">
+          <span>trifft nicht zu</span>
+          <span>trifft voll zu</span>
+        </div>
+      </div>`;
+  });
+
+  card.innerHTML = html;
+  container.appendChild(card);
+
+  // nav
+  document.getElementById('btn-prev').disabled = currentStep === 0;
+  const nextBtn = document.getElementById('btn-next');
+  if (currentStep === total - 1) {
+    nextBtn.textContent = 'Abschicken ✓';
+    nextBtn.onclick = submitQuiz;
+  } else {
+    nextBtn.innerHTML = 'Weiter &#x2192;';
+    nextBtn.onclick = () => navigate(1);
+  }
+}
+
+function selectAnswer(key, val) {
+  // 0 = Weiß nicht → null for scoring but we keep 0 for active-state rendering
+  answers[key] = val; // 0 stored as 0, excluded from avg later
+  renderStep();
+}
+
+function navigate(dir) {
+  const n = currentStep + dir;
+  if (n >= 0 && n < dimensions.length) {
+    currentStep = n;
+    renderStep();
+    window.scrollTo(0,0);
+  }
+}
+
+async function submitQuiz() {
+  // Compute per-dimension averages (exclude null and 0)
+  const scores = {};
+  dimensions.forEach(d => {
+    const vals = d.questions
+      .map((_, qi) => answers[d.id+'_'+qi])
+      .filter(v => v !== null && v !== 0);
+    scores[d.id] = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+  });
+  myScores = scores;
+  try { if (window._fbSave) await window._fbSave(scores); }
+  catch(e) { console.warn('Firebase save failed:', e); }
+  showScreen('screen-thanks');
+}
+
+// ── MY RESULT ──
+function showMyResults() {
+  if (!myScores) { showScreen('screen-welcome'); return; }
+  const vals = Object.values(myScores).filter(v => v !== null);
+  const avg  = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+  const st   = getStage(avg);
+  const el   = document.getElementById('myresult-content');
+
+  let html = `
+    <div class="stage-card" style="border-color:${st.color}">
+      <div class="stage-circle" style="background:${st.color}">${st.level}</div>
+      <div class="stage-info">
+        <h3>${st.name}</h3><p>${st.sub}</p>
+      </div>
+      <div class="stage-total" style="color:${st.color}">${avg.toFixed(1)}</div>
+    </div>
+    <div class="metrics-grid">
+      ${metricCard('Gesamtwert', avg.toFixed(1), st.color)}
+      ${metricCard('Stufe', st.level, st.color)}
+      ${metricCard('Höchstwert', vals.length?Math.max(...vals).toFixed(1):'–', '#1d9e75')}
+      ${metricCard('Niedrigstwert', vals.length?Math.min(...vals).toFixed(1):'–', '#e24b4a')}
+    </div>
+    <div class="section-heading">Ergebnis nach Dimension</div>
+    <div class="dim-list">`;
+
+  dimensions.forEach(d => {
+    const v  = myScores[d.id];
+    const sc = scoreColor(v);
+    html += `
+      <div class="dim-row">
+        <div class="dim-header">
+          <span class="dim-name">${d.name}</span>
+          ${v!==null
+            ? `<span class="dim-badge" style="background:${sc}22;color:${sc}">${getStage(v).name} (${v.toFixed(1)})</span>`
+            : `<span class="dim-badge" style="background:var(--bg-secondary);color:var(--text-tertiary)">–</span>`}
+        </div>
+        <div class="dim-bar-bg">
+          <div class="dim-bar-fill" style="width:${v?(v/5*100):0}%;background:${sc}"></div>
+        </div>
+      </div>`;
+  });
+  html += `</div>`;
+
+  // OE top-3 lowest
+  const sorted = [...dimensions].filter(d=>myScores[d.id]!==null).sort((a,b)=>myScores[a.id]-myScores[b.id]);
+  if (sorted.length) {
+    html += `<div class="section-heading">Empfohlene Maßnahmen (Prioritäten)</div>`;
+    sorted.slice(0,3).forEach(d => {
+      html += `<div class="oe-block">
+        <div class="oe-block-title">${d.name} <span style="color:${scoreColor(myScores[d.id])};font-weight:400;font-size:13px;">(Ø ${myScores[d.id].toFixed(1)})</span></div>
+        <div class="tags">${d.oe.map(m=>`<span class="tag">${m}</span>`).join('')}</div>
+      </div>`;
+    });
+  }
+
+  el.innerHTML = html;
+  showScreen('screen-myresult');
+}
+
+function metricCard(label, value, color) {
+  return `<div class="metric-card">
+    <div class="metric-label">${label}</div>
+    <div class="metric-value" style="color:${color}">${value}</div>
+  </div>`;
+}
+
+// ── DASHBOARD ──
+async function loadDashboard() {
+  document.getElementById('dash-metrics').innerHTML = '<div class="loading-box">Lade Daten&#x2026;</div>';
+  document.getElementById('dash-bars').innerHTML = '';
+  document.getElementById('dash-details').innerHTML = '';
+
+  let data = [];
+  try { if (window._fbLoad) data = await window._fbLoad(); }
+  catch(e) { console.warn('Firebase load failed:', e); }
+
+  if (!data.length) {
+    document.getElementById('dash-metrics').innerHTML =
+      '<div class="no-data">Noch keine Antworten vorhanden.</div>';
+    return;
+  }
+
+  const means = {};
+  dimensions.forEach(d => {
+    const vals = data.map(r=>r.scores&&r.scores[d.id]).filter(v=>v!==null&&v!==undefined);
+    means[d.id] = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+  });
+
+  const allVals = Object.values(means).filter(v=>v!==null);
+  const avg     = allVals.length ? allVals.reduce((a,b)=>a+b,0)/allVals.length : 0;
+  const st      = getStage(avg);
+
+  document.getElementById('dash-metrics').innerHTML = `
+    ${metricCard('Teilnehmer', data.length, 'var(--text-primary)')}
+    ${metricCard('Ø Reifegrad', avg.toFixed(1), st.color)}
+    ${metricCard('Stufe', st.name, st.color)}
+    ${metricCard('Dimensionen', dimensions.length, 'var(--text-primary)')}
+  `;
+
+  let barsHtml = `<div class="section-heading">Durchschnitt je Dimension</div>`;
+  dimensions.forEach(d => {
+    const v  = means[d.id];
+    const sc = scoreColor(v);
+    barsHtml += `
+      <div class="compare-row">
+        <div class="compare-label">${v?v.toFixed(1):'–'}</div>
+        <div class="compare-name">${d.name}</div>
+        <div class="compare-bar-bg">
+          <div class="compare-bar-fill" style="width:${v?(v/5*100):0}%;background:${sc}"></div>
+        </div>
+        <div class="compare-score" style="color:${sc}">${v?getStage(v).name:'–'}</div>
+      </div>`;
+  });
+  document.getElementById('dash-bars').innerHTML = barsHtml;
+
+  renderRadar(means);
+
+  let detailHtml = `<div class="section-heading">Maßnahmen-Empfehlungen (Gruppe)</div>`;
+  [...dimensions].filter(d=>means[d.id]!==null).sort((a,b)=>means[a.id]-means[b.id]).slice(0,3).forEach(d=>{
+    const v = means[d.id];
+    detailHtml += `<div class="oe-block">
+      <div class="oe-block-title">${d.name}
+        <span style="color:${scoreColor(v)};font-size:13px;font-weight:400"> (Ø ${v.toFixed(1)})</span>
+      </div>
+      <div class="tags">${d.oe.map(m=>`<span class="tag">${m}</span>`).join('')}</div>
+    </div>`;
+  });
+  document.getElementById('dash-details').innerHTML = detailHtml;
+}
+
+function renderRadar(means) {
+  const ctx = document.getElementById('dashRadar');
+  if (!ctx) return;
+  if (radarChart) { radarChart.destroy(); radarChart = null; }
+  radarChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: dimensions.map(d => d.name),
+      datasets: [{
+        label: 'Gruppen-Mittelwert',
+        data: dimensions.map(d => means[d.id] || 0),
+        backgroundColor: 'rgba(50,102,173,0.12)',
+        borderColor: '#3266ad',
+        borderWidth: 2,
+        pointBackgroundColor: '#3266ad',
+        pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { r: { min:0, max:5, ticks:{stepSize:1, font:{size:11}}, pointLabels:{font:{size:11}} } },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function switchTab(id) {
+  ['tab-overview','tab-radar','tab-details'].forEach(t => {
+    document.getElementById(t).style.display = t===id ? '' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach((btn,i) => {
+    btn.classList.toggle('active', ['tab-overview','tab-radar','tab-details'][i]===id);
+  });
+  if (id==='tab-radar') renderRadar({}); // re-render if needed
+}
+
+// ── RESET ──
+function showResetModal() {
+  document.getElementById('reset-password').value = '';
+  document.getElementById('reset-error').style.display = 'none';
+  document.getElementById('reset-modal').style.display = 'flex';
+}
+function hideResetModal() {
+  document.getElementById('reset-modal').style.display = 'none';
+}
+async function checkResetPassword() {
+  if (document.getElementById('reset-password').value === ADMIN_PW) {
+    hideResetModal();
+    try {
+      if (window._fbReset) await window._fbReset();
+      alert('Alle Daten wurden gelöscht.');
+      loadDashboard();
+    } catch(e) { alert('Fehler: ' + e.message); }
+  } else {
+    document.getElementById('reset-error').style.display = 'block';
+  }
+}
+
+function restart() { myScores = null; showScreen('screen-welcome'); }
+</script>
+</body>
+</html>
